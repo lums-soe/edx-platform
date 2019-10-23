@@ -41,3 +41,10 @@ class CommentReplyNotification(BaseMessageType):
     A message for notifying users about vote on forum discussion thread.
     """
     pass
+
+
+class ContactUsSupportNotification(BaseMessageType):
+    """
+    A message for notifying support about contact-us from submission.
+    """
+    pass

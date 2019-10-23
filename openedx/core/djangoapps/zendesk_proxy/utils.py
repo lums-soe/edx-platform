@@ -8,6 +8,7 @@ from urlparse import urljoin
 from django.conf import settings
 import requests
 from rest_framework import status
+from openedx.features.edly.utils import send_contact_us_email
 
 log = logging.getLogger(__name__)
 
@@ -46,6 +47,9 @@ def create_zendesk_ticket(requester_name, requester_email, subject, body, custom
 
     # Encode the data to create a JSON payload
     payload = json.dumps(data)
+    if settings.FEATURES.get("ENABLE_CONTACT_US_EMAIL_INSTEAD_ZENDESK", True):
+        email_response = send_contact_us_email(data['ticket'])
+        return status.HTTP_201_CREATED if email_response else status.HTTP_500_INTERNAL_SERVER_ERROR
 
     if not (settings.ZENDESK_URL and settings.ZENDESK_OAUTH_ACCESS_TOKEN):
         log.error(_std_error_message("zendesk not configured", payload))

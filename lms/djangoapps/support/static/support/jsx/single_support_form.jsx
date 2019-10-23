@@ -62,10 +62,16 @@ class RenderForm extends React.Component {
       $('#course').closest('.form-group').addClass('has-error');
       errors.push(gettext('Select a course or select "Not specific to a course" for your support request.'));
     }
-    data.custom_fields = [{
-      id: this.props.context.customFields.course_id,
-      value: course,
-    }];
+    data.custom_fields = [
+      {
+        id: this.props.context.customFields.course_id,
+        value: course,
+      },
+      {
+        id: this.props.context.customFields.phone_number,
+        value: $('#phone-number').val(),
+      }
+    ];
 
     if (this.validateData(data, errors)) {
       request.open('POST', url, true);

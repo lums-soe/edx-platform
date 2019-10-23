@@ -555,6 +555,7 @@ MAKO_TEMPLATE_DIRS_BASE = [
     OPENEDX_ROOT / 'core' / 'djangoapps' / 'dark_lang' / 'templates',
     OPENEDX_ROOT / 'core' / 'lib' / 'license' / 'templates',
     OPENEDX_ROOT / 'features' / 'course_experience' / 'templates',
+    OPENEDX_ROOT / 'features' / 'edly' / 'templates',
 ]
 
 
@@ -3492,3 +3493,7 @@ plugin_settings.add_plugins(__name__, plugin_constants.ProjectType.LMS, plugin_c
 ######################### Settings for LUMS #######################
 
 GOOGLE_ANALYTICS_ID = ''
+
+################################ CONTACT US SUPPORT EMAILS #####################
+
+CONTACT_US_SUPPORT_EMAILS = []
