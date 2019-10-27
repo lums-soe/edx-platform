@@ -1,14 +1,20 @@
+from celery.task import task
+from celery.utils.log import get_task_logger
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
-
-from celery.task import task
-from celery.utils.log import get_task_logger
 from edx_ace import ace
 from edx_ace.recipient import Recipient
 from lms.djangoapps.instructor.enrollment import send_mail_to_student
 from openedx.core.lib.celery.task_utils import emulate_http_request
-from openedx.features.edly.message_types import HandoutChangeNotification, OutlineChangeNotification
+from openedx.features.edly.message_types import (
+    CommentReplyNotification,
+    CommentVoteNotification,
+    HandoutChangeNotification,
+    OutlineChangeNotification,
+    ThreadCreateNotification,
+    ThreadVoteNotification
+)
 
 TASK_LOG = get_task_logger(__name__)
 ROUTING_KEY = getattr(settings, 'ACE_ROUTING_KEY')
@@ -26,7 +32,11 @@ def send_bulk_mail_to_students(students, param_dict, message_type):
     """
     message_types = {
         'outline_changes': OutlineChangeNotification,
-        'handout_changes': HandoutChangeNotification
+        'handout_changes': HandoutChangeNotification,
+        'new_thread': ThreadCreateNotification,
+        'comment_vote': CommentVoteNotification,
+        'thread_vote': ThreadVoteNotification,
+        'comment_reply': CommentReplyNotification
     }
     message_class = message_types[message_type]
     param_dict['site'] = Site.objects.get(id=param_dict['site_id'])

@@ -1,0 +1,4 @@
+{{ platform_name }}
+{% load i18n %}
+
+{% blocktrans %}New Post of title {{ thread_title }}{% endblocktrans %}

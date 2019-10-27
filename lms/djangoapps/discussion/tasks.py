@@ -59,20 +59,18 @@ class ResponseNotification(BaseMessageType):
 @task(base=LoggedTask, routing_key=ROUTING_KEY)
 def send_ace_message(context):
     context['course_id'] = CourseKey.from_string(context['course_id'])
-
-    if _should_send_message(context):
-        context['site'] = Site.objects.get(id=context['site_id'])
-        thread_author = User.objects.get(id=context['thread_author_id'])
-        with emulate_http_request(site=context['site'], user=thread_author):
-            message_context = _build_message_context(context)
-            message = ResponseNotification().personalize(
-                Recipient(thread_author.username, thread_author.email),
-                _get_course_language(context['course_id']),
-                message_context
-            )
-            log.info('Sending forum comment email notification with context %s', message_context)
-            ace.send(message)
-            _track_notification_sent(message, context)
+    context['site'] = Site.objects.get(id=context['site_id'])
+    thread_author = User.objects.get(id=context['thread_author_id'])
+    with emulate_http_request(site=context['site'], user=thread_author):
+        message_context = _build_message_context(context)
+        message = ResponseNotification().personalize(
+            Recipient(thread_author.username, thread_author.email),
+            _get_course_language(context['course_id']),
+            message_context
+        )
+        log.info('Sending forum comment email notification with context %s', message_context)
+        ace.send(message)
+        _track_notification_sent(message, context)
 
 
 def _track_notification_sent(message, context):
