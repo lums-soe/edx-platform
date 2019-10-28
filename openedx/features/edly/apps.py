@@ -8,4 +8,4 @@ class EdlyConfig(AppConfig):
     name = 'openedx.features.edly'
 
     def ready(self):
-        from openedx.features.edly import signals
+        from openedx.features.edly import signals  # noqa # pylint: disable=unused-import

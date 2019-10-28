@@ -12,7 +12,7 @@ from opaque_keys.edx.locator import LibraryLocator
 from openedx.core.djangoapps.site_configuration.models import SiteConfiguration
 from openedx.core.djangoapps.theming.helpers import get_current_site
 from xmodule.modulestore.django import SignalHandler
-
+from openedx.features.edly.utils import send_comments_reply_email_to_comment_owner
 
 log = logging.getLogger(__name__)
 
@@ -74,4 +74,8 @@ def send_message(comment, site):
         'thread_commentable_id': thread.commentable_id,
         'site_id': site.id
     }
-    tasks.send_ace_message.apply_async(args=[context])
+    if comment.user_id != thread.user_id:
+        tasks.send_ace_message.apply_async(args=[context])
+    if comment.parent_id:
+        context.update({'site': site})
+        send_comments_reply_email_to_comment_owner(comment, context)
