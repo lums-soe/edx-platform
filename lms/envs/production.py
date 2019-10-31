@@ -1123,3 +1123,7 @@ plugin_settings.add_plugins(__name__, plugin_constants.ProjectType.LMS, plugin_c
 ########################## Derive Any Derived Settings  #######################
 
 derive_settings(__name__)
+
+######################### Settings for LUMS #######################
+
+GOOGLE_ANALYTICS_ID = AUTH_TOKENS.get('GOOGLE_ANALYTICS_ID', GOOGLE_ANALYTICS_ID)
