@@ -1131,6 +1131,8 @@
             okButton.onclick = function() { return close(false); };
             cancelButton.onclick = function() { return close(true); };
 
+            document.getElementById('img-is-decorative').checked = true;
+
             if (imageUploadHandler) {
                 var startUploadHandler = function() {
                     document.getElementById('file-upload').onchange = function() {
