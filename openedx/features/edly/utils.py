@@ -195,7 +195,7 @@ def update_context_with_thread(context, thread):
         'thread_commentable_id': thread.commentable_id,
         'thread_author_id': thread_author.id,
         'thread_username': thread_author.username,
-        'thread_created_at': date.deserialize(thread.created_at)
+        'thread_created_at': thread.created_at
     })
 
 
@@ -206,7 +206,7 @@ def update_context_with_comment(context, comment):
         'comment_body': comment.body,
         'comment_author_id': comment_author.id,
         'comment_username': comment_author.username,
-        'comment_created_at': date.deserialize(comment.created_at),
+        'comment_created_at': comment.created_at
     })
 
 
@@ -217,7 +217,7 @@ def build_message_context(context):
     message_context.update({
         'site_id': site.id,
         'post_link': _get_thread_url(context),
-        'course_name': CourseOverview.get_from_id(context.pop('course_id')).display_name
+        'course_name': CourseOverview.get_from_id(message_context.pop('course_id')).display_name
     })
     message_context.pop('site')
     return message_context
