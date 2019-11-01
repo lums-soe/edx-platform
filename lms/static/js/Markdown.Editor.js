@@ -35,7 +35,7 @@
     // The text that appears on the dialog box when entering Images.
     var imageDialogText = gettext('Upload file, insert Image or type URL'),
         imageUrlHelpText = gettext("Type in a URL or use the \"Choose File\" button to upload a file (supported files extensions: '.jpg', '.jpeg', '.gif', '.bmp', '.png', '.tiff', '.pdf', '.doc', '.docx') from your machine. (e.g. 'http://example.com/img/clouds.jpg')"),  // eslint-disable-line max-len
-        imageDescriptionLabel = gettext('File/Image Description.'),
+        imageDescriptionLabel = gettext('File/Image Description (required).'),
         imageDefaultText = 'http://', // The default text that appears in input
         imageDescError = gettext('Please describe this file'),  // eslint-disable-line max-len
         imageDescriptionHelpText = gettext("e.g. 'Sky with clouds'. The description is helpful for users who cannot see the image (for image files) and for showing link text."),  // eslint-disable-line max-len
@@ -47,10 +47,10 @@
 
     // Text that is shared between both link and image dialog boxes.
     var defaultHelpHoverTitle = gettext('Markdown Editing Help'),
-        urlLabel = gettext('URL'),
+        urlLabel = gettext('URL (required)'),
         urlError = gettext('Please provide a valid URL.');
 
-    var insertFileAsLink = false;
+    var insertFileAsLink = true;
 
     // -------------------------------------------------------------------
     //  END OF YOUR CHANGES
@@ -1732,8 +1732,8 @@
                     chunk.startTag = isImage && !insertFileAsLink ? '![' : '[';
                     chunk.endTag = '][' + num + ']';
 
-                    // Reset "insertFileAsLink" to false for new files
-                    insertFileAsLink = false;
+                    // Reset "insertFileAsLink" to true for new files
+                    insertFileAsLink = true;
 
                     if (!chunk.selection) {
                         if (isImage) {
