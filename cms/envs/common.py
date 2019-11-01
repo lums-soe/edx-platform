@@ -126,6 +126,8 @@ from lms.envs.common import (
     DEFAULT_MOBILE_AVAILABLE,
 
     CONTACT_EMAIL,
+    CONTACT_MAILING_ADDRESS,
+
 
     DISABLE_ACCOUNT_ACTIVATION_REQUIREMENT_SWITCH,
     # Video Image settings

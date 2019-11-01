@@ -1,18 +1,25 @@
 import logging
 import re
 
-from django.conf import settings
-
-from contentstore.utils import get_lms_link_for_item, is_currently_visible_to_students
+from cms.djangoapps.contentstore.utils import get_lms_link_for_item, is_currently_visible_to_students
 from courseware.courses import get_course_by_id
+from django.conf import settings
+from django.contrib.auth.models import User
+from edx_ace.utils import date
+from lms.djangoapps.discussion.tasks import _get_thread_url
+from lms.lib.comment_client.comment import Comment
+from opaque_keys.edx.keys import CourseKey
+from openedx.core.djangoapps.ace_common.template_context import get_base_template_context
+from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
+from openedx.core.djangoapps.site_configuration.models import SiteConfiguration
 from openedx.core.djangoapps.theming.helpers import get_current_site
 from openedx.features.edly.tasks import send_bulk_mail_to_students
 from static_replace import replace_static_urls
 from student.models import CourseEnrollment
 
 log = logging.getLogger(__name__)
-
+ENABLE_FORUM_NOTIFICATIONS_FOR_SITE_KEY = 'enable_forum_notifications'
 COURSE_OUTLINE_CATEGORIES = ['vertical', 'sequential', 'chapter']
 
 
@@ -177,3 +184,79 @@ def get_course_enrollments(course_id):
     course_enrollments = CourseEnrollment.objects.filter(course_id=course_id, is_active=True)
     students = [enrollment.user.id for enrollment in course_enrollments]
     return students
+
+
+def update_context_with_thread(context, thread):
+    thread_author = User.objects.get(id=thread.user_id)
+    context.update({
+        'thread_id': thread.id,
+        'thread_title': thread.title,
+        'thread_body': thread.body,
+        'thread_commentable_id': thread.commentable_id,
+        'thread_author_id': thread_author.id,
+        'thread_username': thread_author.username,
+        'thread_created_at': date.deserialize(thread.created_at)
+    })
+
+
+def update_context_with_comment(context, comment):
+    comment_author = User.objects.get(id=comment.user_id)
+    context.update({
+        'comment_id': comment.id,
+        'comment_body': comment.body,
+        'comment_author_id': comment_author.id,
+        'comment_username': comment_author.username,
+        'comment_created_at': date.deserialize(comment.created_at),
+    })
+
+
+def build_message_context(context):
+    site = context['site']
+    message_context = get_base_template_context(site)
+    message_context.update(context)
+    message_context.update({
+        'site_id': site.id,
+        'post_link': _get_thread_url(context),
+        'course_name': CourseOverview.get_from_id(context.pop('course_id')).display_name
+    })
+    message_context.pop('site')
+    return message_context
+
+
+def is_notification_configured_for_site(site, post_id):
+    if site is None:
+        log.info('Discussion: No current site, not sending notification about new thread: %s.', post_id)
+        return False
+    try:
+        if not site.configuration.get_value(ENABLE_FORUM_NOTIFICATIONS_FOR_SITE_KEY, False):
+            log_message = 'Discussion: notifications not enabled for site: %s. Not sending message about new thread: %s'
+            log.info(log_message, site, post_id)
+            return False
+    except SiteConfiguration.DoesNotExist:
+        log_message = 'Discussion: No SiteConfiguration for site %s. Not sending message about new thread: %s.'
+        log.info(log_message, site, post_id)
+        return False
+    return True
+
+
+def send_comments_reply_email_to_comment_owner(comment, context):
+    """
+    This function will send a notification email to Comment Owner in case of reply on a comment.
+
+    By deffault edX is sending email to Thread Owner only. We have extended this functionality
+    as we want to send an email to comment owner also.
+
+    Arguments:
+        comment: Repied Comment.
+        context: Data to be sent to the email
+    """
+    context.update({
+        'course_id': CourseKey.from_string(comment.course_id),
+    })
+    update_context_with_thread(context, comment.thread)
+    update_context_with_comment(context, comment)
+    message_context = build_message_context(context)
+    parent_comment = Comment(id=comment.parent_id).retrieve()
+    if parent_comment.user_id != comment.thread.user_id and parent_comment.user_id != comment.user_id:
+        receipients = [parent_comment.user_id]
+        send_bulk_mail_to_students.delay(receipients, message_context, 'comment_reply')

@@ -533,7 +533,7 @@ def _vote_or_unvote(request, course_id, obj, value='up', undo_vote=False):
         # (People could theoretically downvote by handcrafting AJAX requests.)
     else:
         user.vote(obj, value)
-    thread_voted.send(sender=None, user=request.user, post=obj)
+    thread_voted.send(sender=None, user=request.user, post=obj, undo_vote=undo_vote)
     track_voted_event(request, course, obj, value, undo_vote)
     return JsonResponse(prepare_content(obj.to_dict(), course_key))
 

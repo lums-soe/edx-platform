@@ -1,0 +1,4 @@
+{{ platform_name }}
+{% load i18n %}
+
+{% blocktrans %} Vote on your post: {{ thread_title }}{% endblocktrans %}
