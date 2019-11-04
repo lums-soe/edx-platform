@@ -5,7 +5,6 @@ from cms.djangoapps.contentstore.utils import get_lms_link_for_item, is_currentl
 from courseware.courses import get_course_by_id
 from django.conf import settings
 from django.contrib.auth.models import User
-from edx_ace.utils import date
 from lms.djangoapps.discussion.tasks import _get_thread_url
 from lms.lib.comment_client.comment import Comment
 from opaque_keys.edx.keys import CourseKey
@@ -108,21 +107,24 @@ def _handle_handout_changes(xblock, old_content):
         xblock: Update handouts xblock
         old_content: Old content of the handout xblock
     """
+    old_content_with_absolute_urls = None
+    if old_content:
+        # Whenever new course is created old_content is None.
+        # Operations for old xblock data
+        old_content_with_replaced_static_urls = replace_static_urls(
+            old_content.get('data'),
+            course_id=xblock.location.course_key)
+        absolute_urls_of_old_data = _get_urls(old_content_with_replaced_static_urls)
+        old_content_with_absolute_urls = _replace_relative_urls_with_absolute_urls(
+            old_content_with_replaced_static_urls,
+            absolute_urls_of_old_data)
+
     # Operations for New Xblock Data
     new_content_with_replaced_static_urls = replace_static_urls(xblock.data, course_id=xblock.location.course_key)
     absolute_urls_of_new_data = _get_urls(new_content_with_replaced_static_urls)
     new_content_with_absolute_urls = _replace_relative_urls_with_absolute_urls(
         new_content_with_replaced_static_urls,
         absolute_urls_of_new_data)
-
-    # Operations for old xblock data
-    old_content_with_replaced_static_urls = replace_static_urls(
-        old_content.get('data'),
-        course_id=xblock.location.course_key)
-    absolute_urls_of_old_data = _get_urls(old_content_with_replaced_static_urls)
-    old_content_with_absolute_urls = _replace_relative_urls_with_absolute_urls(
-        old_content_with_replaced_static_urls,
-        absolute_urls_of_old_data)
 
     email_params = get_email_params(xblock)
     email_params['old_content'] = old_content_with_absolute_urls
@@ -137,7 +139,6 @@ def _replace_relative_urls_with_absolute_urls(content, absolute_urls):
 
     Arguments:
         content: Content to be changed
-        relative_urls: List of relative urls to change from content
         absolute_urls: List of absolute urls to change with relative urls.
 
     Returns:
@@ -243,11 +244,11 @@ def send_comments_reply_email_to_comment_owner(comment, context):
     """
     This function will send a notification email to Comment Owner in case of reply on a comment.
 
-    By deffault edX is sending email to Thread Owner only. We have extended this functionality
+    By default edX is sending email to Thread Owner only. We have extended this functionality
     as we want to send an email to comment owner also.
 
     Arguments:
-        comment: Repied Comment.
+        comment: Replied Comment.
         context: Data to be sent to the email
     """
     context.update({
@@ -258,5 +259,5 @@ def send_comments_reply_email_to_comment_owner(comment, context):
     message_context = build_message_context(context)
     parent_comment = Comment(id=comment.parent_id).retrieve()
     if parent_comment.user_id != comment.thread.user_id and parent_comment.user_id != comment.user_id:
-        receipients = [parent_comment.user_id]
-        send_bulk_mail_to_students.delay(receipients, message_context, 'comment_reply')
+        recipients = [parent_comment.user_id]
+        send_bulk_mail_to_students.delay(recipients, message_context, 'comment_reply')
