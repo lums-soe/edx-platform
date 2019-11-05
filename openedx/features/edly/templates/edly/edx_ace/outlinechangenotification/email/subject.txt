@@ -1,4 +1,4 @@
 {% load i18n %}
 {% autoescape off %}
-{% blocktrans %}Your course {{ course_name }} on {{ site_name }} has been updated{% endblocktrans %}
+{% blocktrans %}Your course {{ course_name }} on {{ platform_name }} has been updated{% endblocktrans %}
 {% endautoescape %}
