@@ -1,8 +1,10 @@
 from celery.task import task
 from celery.utils.log import get_task_logger
+from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
+from django.db.models import Q
 from edx_ace import ace
 from edx_ace.recipient import Recipient
 from lms.djangoapps.instructor.enrollment import send_mail_to_student
@@ -39,7 +41,13 @@ def send_bulk_mail_to_students(students, param_dict, message_type):
         'comment_reply': CommentReplyNotification
     }
     message_class = message_types[message_type]
-    param_dict['site'] = Site.objects.get(id=param_dict['site_id'])
+    try:
+        # Here we don't know if the request is coming from LMS or CMS but we need to use the LMS Site in both cases.
+        param_dict['site'] = Site.objects.get(Q(domain=settings.LMS_BASE) | Q(name=settings.LMS_BASE))
+    except (ObjectDoesNotExist, MultipleObjectsReturned):
+        # If we don't get the LMS site by domain name, we will get the current site
+        param_dict['site'] = Site.objects.get(id=param_dict['site_id'])
+
     for student_id in students:
         student = User.objects.get(id=student_id)
         param_dict['full_name'] = student.profile.name
