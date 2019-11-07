@@ -15,7 +15,7 @@ from openedx.features.edly.utils import (
     update_context_with_comment,
     update_context_with_thread
 )
-from student.models import CourseEnrollment
+from student.models import CourseEnrollment, ManualEnrollmentAudit
 
 
 @receiver(post_save, sender=CourseEnrollment)
@@ -28,6 +28,9 @@ def handle_user_enrollment(sender, instance, **kwargs):
         instance: Instance of model which has been created or updated
         kwargs: Remaining parts of signal.
     """
+
+    if ManualEnrollmentAudit.get_manual_enrollment(instance):
+        return
 
     # Send email notification if Enrollment signal is created/updated in LMS.
     if settings.ROOT_URLCONF == 'lms.urls':
