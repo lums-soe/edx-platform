@@ -64,6 +64,7 @@ from openedx.core.djangoapps.user_api.models import UserRetirementRequest
 from openedx.core.djangoapps.user_api.preferences import api as preferences_api
 
 from openedx.core.djangolib.markup import HTML, Text
+from openedx.features.edly.handlers import handle_user_enrollment
 from openedx.features.journals.api import get_journals_context
 from student.forms import AccountCreationForm, PasswordResetFormNoActive, get_registration_extension_form
 from student.helpers import (
@@ -406,7 +407,7 @@ def change_enrollment(request, check_access=True):
                     CourseEnrollment.enroll(user, course_id, check_access=check_access, mode=enroll_mode)
             except Exception:  # pylint: disable=broad-except
                 return HttpResponseBadRequest(_("Could not enroll"))
-
+        handle_user_enrollment(course_id, user, action)
         # If we have more than one course mode or professional ed is enabled,
         # then send the user to the choose your track page.
         # (In the case of no-id-professional/professional ed, this will redirect to a page that
@@ -429,6 +430,7 @@ def change_enrollment(request, check_access=True):
 
         CourseEnrollment.unenroll(user, course_id)
         REFUND_ORDER.send(sender=None, course_enrollment=enrollment)
+        handle_user_enrollment(course_id, user, action)
         return HttpResponse()
     else:
         return HttpResponseBadRequest(_("Enrollment action is invalid"))

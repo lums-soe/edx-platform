@@ -1,11 +1,11 @@
 from six import text_type
 
 from django.conf import settings
-from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django_comment_common import signals as forum_signals
 from lms.djangoapps.instructor.enrollment import get_email_params
 from opaque_keys.edx.keys import CourseKey
+from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
 from openedx.core.djangoapps.theming.helpers import get_current_site
 from openedx.features.edly.tasks import send_bulk_mail_to_students, send_course_enrollment_mail
 from openedx.features.edly.utils import (
@@ -15,50 +15,41 @@ from openedx.features.edly.utils import (
     update_context_with_comment,
     update_context_with_thread
 )
-from student.models import CourseEnrollment, ManualEnrollmentAudit
 
 
-@receiver(post_save, sender=CourseEnrollment)
-def handle_user_enrollment(sender, instance, **kwargs):
+def handle_user_enrollment(course_id, user, enrollment_state):
     """
     Handle the course enrollment and send the email to the student about enrollment.
 
     Arguments:
-        sender: Model from which we received signal.
-        instance: Instance of model which has been created or updated
-        kwargs: Remaining parts of signal.
+        course_id: id of course in which user enrolled
+        user: User enrolled in course
+        enrollment_state: 'enroll' or 'unenroll'
     """
+    email_params = {}
+    if enrollment_state == "enroll":
+        email_params['message_type'] = 'enrolled_enroll'
+    elif enrollment_state == "unenroll":
+        email_params['message_type'] = 'enrolled_unenroll'
 
-    if ManualEnrollmentAudit.get_manual_enrollment(instance):
-        return
+    site = get_current_site()
+    site_id = ''
+    if site:
+        site_id = site.id
+    email_params['site_id'] = site_id
 
-    # Send email notification if Enrollment signal is created/updated in LMS.
-    if settings.ROOT_URLCONF == 'lms.urls':
-        email_params = {}
-        if instance.is_active:
-            email_params['message_type'] = 'enrolled_enroll'
-        elif not instance.is_active and not kwargs['created']:
-            email_params['message_type'] = 'enrolled_unenroll'
-        else:
-            return
+    user_fullname = user.profile.name
+    user_email = user.email
+    course = CourseOverview.objects.get(id=course_id)
 
-        site = get_current_site()
-        site_id = ''
-        if site:
-            site_id = site.id
-        email_params['site_id'] = site_id
+    email_params.update(get_email_params(course, True, secure=False))
+    email_params['contact_mailing_address'] = settings.CONTACT_MAILING_ADDRESS
+    email_params['email_address'] = user_email
+    email_params['full_name'] = user_fullname
+    email_params['enroll_by_self'] = True
+    email_params['course'] = text_type(email_params['course'])
 
-        user_fullname = instance.user.profile.name
-        user_email = instance.user.email
-
-        email_params.update(get_email_params(instance.course, True, secure=False))
-        email_params['contact_mailing_address'] = settings.CONTACT_MAILING_ADDRESS
-        email_params['email_address'] = user_email
-        email_params['full_name'] = user_fullname
-        email_params['enroll_by_self'] = True
-        email_params['course'] = text_type(email_params['course'])
-
-        send_course_enrollment_mail.delay(user_email, email_params)
+    send_course_enrollment_mail.delay(user_email, email_params)
 
 
 @receiver(forum_signals.thread_created)
