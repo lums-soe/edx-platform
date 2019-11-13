@@ -55,11 +55,21 @@ function LoggedInUser({ userInformation, setErrorState, zendeskApiHost, submitFo
       </div>
     </div>
 
+
     <div className="row">
       <div className="col-sm-12">
         <div className="form-group">
           <label htmlFor="subject">{gettext('Subject')}</label>
-          <input type="text" className="form-control" id="subject" />
+          <input type="text" className="form-control" id="subject" value="[Contact Us Form] Request" />
+        </div>
+      </div>
+    </div>
+
+    <div className="row">
+      <div className="col-sm-12">
+        <div className="form-group">
+          <label htmlFor="phone-number">{gettext('Phone Number')}</label>
+          <input type="tel" className="form-control" id="phone-number"/>
         </div>
       </div>
     </div>

@@ -1,18 +1,26 @@
+import json
 import logging
 import re
+from smtplib import SMTPException
 
 from cms.djangoapps.contentstore.utils import get_lms_link_for_item, is_currently_visible_to_students
 from courseware.courses import get_course_by_id
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.core.mail import send_mail
+from edx_ace import ace
+from edx_ace.recipient import Recipient
+from edxmako.shortcuts import render_to_string
 from lms.djangoapps.discussion.tasks import _get_thread_url
 from lms.lib.comment_client.comment import Comment
+from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey
 from openedx.core.djangoapps.ace_common.template_context import get_base_template_context
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 from openedx.core.djangoapps.site_configuration.models import SiteConfiguration
 from openedx.core.djangoapps.theming.helpers import get_current_site
+from openedx.features.edly.message_types import ContactUsSupportNotification
 from openedx.features.edly.tasks import send_bulk_mail_to_students
 from static_replace import replace_static_urls
 from student.models import CourseEnrollment
@@ -261,3 +269,58 @@ def send_comments_reply_email_to_comment_owner(comment, context):
     if parent_comment.user_id != comment.thread.user_id and parent_comment.user_id != comment.user_id:
         recipients = [parent_comment.user_id]
         send_bulk_mail_to_students.delay(recipients, message_context, 'comment_reply')
+
+
+def get_course_name_from_id(course_id):
+    try:
+        course_key = CourseKey.from_string(course_id)
+        return CourseOverview.get_from_id(course_key).display_name
+    except (CourseOverview.DoesNotExist, InvalidKeyError):
+        return None
+
+
+def send_contact_us_email(data):
+    payload = json.dumps(data)
+    email_status = False
+    recipient_list = settings.CONTACT_US_SUPPORT_EMAILS
+    current_site = get_current_site()
+    message_context = get_base_template_context(current_site)
+    course_name = get_course_name_from_id(data['custom_fields'][0]['value'])
+
+    message_context.update({
+        'requester_name': data['requester']['name'],
+        'requester_email': data['requester']['email'],
+        'body': data['comment']['body'],
+        'custom_fields': data['custom_fields'],
+        'subject': data['subject']
+    })
+
+    if course_name:
+        message_context.update({'course_name': course_name})
+
+    for recipient_email in recipient_list:
+        log.info(
+            u'Attempting to send contact_us email to: %s of support team, For context: %s',
+            recipient_email,
+            payload
+        )
+        message = ContactUsSupportNotification().personalize(
+            recipient=Recipient(username='', email_address= recipient_email),
+            language='en',
+            user_context=message_context,
+        )
+        try:
+            ace.send(message)
+            log.info(
+                u'Success: sending contact-us email to: %s of support team, For context: %s',
+                recipient_email,
+                payload
+            )
+            email_status = True
+        except Exception:  # pylint: disable=broad-except
+            log.exception(
+                u'Failure: sending contact-us email to: %s of support team, For context: %s',
+                recipient_email,
+                payload
+            )
+    return email_status

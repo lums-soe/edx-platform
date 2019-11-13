@@ -1128,3 +1128,7 @@ derive_settings(__name__)
 ######################### Settings for LUMS #######################
 
 GOOGLE_ANALYTICS_ID = AUTH_TOKENS.get('GOOGLE_ANALYTICS_ID', GOOGLE_ANALYTICS_ID)
+
+################################ CONTACT US SUPPORT EMAILS #####################
+
+CONTACT_US_SUPPORT_EMAILS = ENV_TOKENS.get('CONTACT_US_SUPPORT_EMAILS', CONTACT_US_SUPPORT_EMAILS)

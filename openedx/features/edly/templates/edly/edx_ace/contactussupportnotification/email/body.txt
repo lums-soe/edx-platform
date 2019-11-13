@@ -1,0 +1,11 @@
+{% load i18n %}
+{% block content %}
+
+{% blocktrans trimmed %}Requester Name: {{ requester_name }}{% endblocktrans %}
+{% blocktrans trimmed %}Requester Email: {{ requester_email }}{% endblocktrans %}
+{% if course_name %}{% blocktrans trimmed %}Course Name: {{ course_name }}{% endblocktrans %}{% endif %}
+{% for field in custom_fields%}{{field.id}}: {{field.value}}{% endfor %}
+
+{% blocktrans trimmed %}Details: {{ body }}{% endblocktrans %}
+
+{% endblock %}
