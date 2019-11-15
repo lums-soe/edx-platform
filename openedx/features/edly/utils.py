@@ -168,7 +168,7 @@ def _get_urls(content):
         List of relative urls
     """
     absolute_urls = {}
-    pattern = r'href' '*=' '*("/asset[:.A-z0-9/+@-]*")'
+    pattern = r'href\s*=\s*("/asset[:.A-z0-9/+@-]*")'
     try:
         relative_urls = re.findall(pattern, content)
         for relative_url in relative_urls:
