@@ -133,6 +133,8 @@
                 'keypress .forum-new-post-form input:not(.wmd-input)': function(event) {
                     return DiscussionUtil.ignoreEnterKey(event);
                 },
+                'input .forum-new-post-form .wmd-input ': 'toggleSubmitButton',
+                'input .forum-new-post-form #discussion-forum-title': 'toggleSubmitButton',
                 'submit .forum-new-post-form': 'createPost',
                 'change .post-option-input': 'postOptionChange',
                 'change .js-group-select': 'groupOptionChange',
@@ -142,6 +144,16 @@
                 'keydown .wmd-button': function(event) {
                     return DiscussionUtil.handleKeypressInToolbar(event);
                 }
+            };
+
+            NewPostView.prototype.toggleSubmitButton = function () {
+              var lengthOfBody = this.$('.wmd-input').val().length;
+              var lengthOfTitle = this.$('#discussion-forum-title').val().length;
+              if (lengthOfBody > 0 && lengthOfTitle > 0){
+                this.$('.submit').prop('disabled', false);
+              } else {
+                this.$('.submit').prop('disabled', true);
+              }
             };
 
             NewPostView.prototype.toggleGroupDropdown = function($target) {
