@@ -1134,13 +1134,30 @@
             document.getElementById('img-is-decorative').checked = true;
 
             if (imageUploadHandler) {
-                var startUploadHandler = function() {
+                okButton.disabled = true;
+                var startUploadHandler = function(event) {
+                    var fileDescriptionValue = document.getElementById('new-url-desc-input').value.length;
+                    okButton.disabled = !(fileDescriptionValue && event.target.value.length);
                     document.getElementById('file-upload').onchange = function() {
                         imageUploadHandler(this, urlInput);
                         urlInput.focus();
 
                         // Ensures that a user can update their file choice.
                         startUploadHandler();
+                    };
+
+                    document.getElementById('new-url-input').oninput = toggleSubmitButton;
+
+                    document.getElementById('new-url-desc-input').oninput = toggleSubmitButton;
+
+                    function toggleSubmitButton() {
+                      var lengthOfDescriptionField = document.getElementById('new-url-desc-input').value.length;
+                      var valueOfUrlField = document.getElementById('new-url-input').value;
+                      var lengthOfUrlFieldWithoutProtocol = valueOfUrlField.replace(/^https?\:\/\//i, '').length;
+                      var lengthOfFileUploadField = document.getElementById('file-upload').value.length;
+
+                      okButton.disabled = !((lengthOfDescriptionField && lengthOfFileUploadField) ||
+                        (lengthOfDescriptionField && lengthOfUrlFieldWithoutProtocol));
                     };
                 };
                 startUploadHandler();
