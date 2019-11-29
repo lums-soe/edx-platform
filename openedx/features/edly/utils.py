@@ -1,16 +1,13 @@
 import json
 import logging
 import re
-from smtplib import SMTPException
 
 from cms.djangoapps.contentstore.utils import get_lms_link_for_item, is_currently_visible_to_students
 from courseware.courses import get_course_by_id
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.core.mail import send_mail
 from edx_ace import ace
 from edx_ace.recipient import Recipient
-from edxmako.shortcuts import render_to_string
 from lms.djangoapps.discussion.tasks import _get_thread_url
 from lms.lib.comment_client.comment import Comment
 from opaque_keys import InvalidKeyError
@@ -134,11 +131,26 @@ def _handle_handout_changes(xblock, old_content):
         new_content_with_replaced_static_urls,
         absolute_urls_of_new_data)
 
-    email_params = get_email_params(xblock)
-    email_params['old_content'] = old_content_with_absolute_urls
-    email_params['new_content'] = new_content_with_absolute_urls
-    students = get_course_enrollments(xblock.location.course_key)
-    send_bulk_mail_to_students.delay(students, email_params, 'handout_changes')
+    old_content_lines = []
+    if old_content_with_absolute_urls:
+        old_content_lines = old_content_with_absolute_urls.split('\n')
+    old_content_lines = [line.strip() for line in old_content_lines]
+    new_content_lines = new_content_with_absolute_urls.split('\n')
+    new_content_lines = [line.strip() for line in new_content_lines]
+    new_changes = get_new_changes(old_content_lines, new_content_lines)
+    if len(new_changes):
+        email_params = get_email_params(xblock)
+        email_params['new_content'] = new_changes
+        students = get_course_enrollments(xblock.location.course_key)
+        send_bulk_mail_to_students.delay(students, email_params, 'handout_changes')
+
+
+def get_new_changes(old_content_lines, new_content_lines):
+    changes = []
+    for line in new_content_lines:
+        if line not in old_content_lines:
+            changes.append(line)
+    return '\n'.join(changes)
 
 
 def _replace_relative_urls_with_absolute_urls(content, absolute_urls):
