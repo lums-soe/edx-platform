@@ -21,16 +21,10 @@
             <p style="color: rgba(0,0,0,.75);">
                     <table border="1">
                         <thead>
-                            {% if old_content%}
-                                <th>Old Content</th>
-                            {% endif %}
                             <th>New Content</th>
                         </thead>
                         <tbody>
                             <tr>
-                                {% if old_content%}
-                                    <td>{% autoescape off %}{{ old_content }}{% endautoescape %}</td>
-                                {% endif %}
                                 <td>{% autoescape off %}{{ new_content }}{% endautoescape %}</td>
                             </tr>
                         </tbody>
