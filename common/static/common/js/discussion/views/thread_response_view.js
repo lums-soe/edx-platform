@@ -184,13 +184,12 @@
 
             ThreadResponseView.prototype.toggleCommentSubmitButton = function(event) {
                 var id = event.target.id.split('-').slice(-1)[0];
-                var query_selector = 'form[data-id="'+ id +'"] .discussion-submit-comment';
-                var comment_button = document.querySelector(query_selector);
+                var querySelector = 'form[data-id="'+ id +'"] .discussion-submit-comment';
+                var commentButton = document.querySelector(querySelector);
                 if (event.target.value.length > 0) {
-                    comment_button.disabled = false;
-                }
-                else {
-                    comment_button.disabled = true;
+                    commentButton.disabled = false;
+                } else {
+                    commentButton.disabled = true;
                 }
             };
 
@@ -214,7 +213,6 @@
                 view = this.renderComment(comment);
                 this.hideEditorChrome();
                 this.trigger('comment:add', comment);
-                event.target.disabled = true;
                 return DiscussionUtil.safeAjax({
                     $elem: $(event.target),
                     url: url,
