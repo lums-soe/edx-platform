@@ -346,15 +346,16 @@
             DiscussionThreadView.prototype.endorseThread = function() {
                 return this.model.set('endorsed', this.$el.find('.action-answer.is-checked').length > 0);
             };
+
             DiscussionThreadView.prototype.toggleResponseSubmitButton = function(event) {
-                var post_button = $('.discussion-submit-post');
+                var postButton = $('.discussion-submit-post');
                 if (event.target.value.length) {
-                    post_button.attr('disabled', false);
+                    postButton.attr('disabled', false);
+                } else {
+                    postButton.attr('disabled', true);
                 }
-                else {
-                    post_button.attr('disabled', true);
-                }
-            }
+            };
+
             DiscussionThreadView.prototype.submitComment = function(event) {
                 var body, comment, url, view;
                 event.preventDefault();
@@ -381,7 +382,6 @@
                 });
                 this.model.addComment();
                 this.renderAddResponseButton();
-                event.target.disabled = true
                 return DiscussionUtil.safeAjax({
                     $elem: $(event.target),
                     url: url,
