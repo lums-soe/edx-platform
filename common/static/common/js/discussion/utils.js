@@ -220,7 +220,7 @@
 
             request = $.ajax(params).always(function() {
                 if ($elem) {
-                    var elemClassList = $elem.content.classList;
+                    var elemClassList = $elem.content && $elem.content.classList;
                     // This check is added because we don't want to enable this button's until user add some text in box,
                     // handled this thing in other file. We are not enabling the button from here.
                     if(!elemClassList ||
