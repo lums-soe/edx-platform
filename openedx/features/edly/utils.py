@@ -387,7 +387,7 @@ def generate_custom_ora2_report(header, datarows):
                 except InvalidKeyError:
                     log.exception('Usage Key for the given block is not found')
     except ValueError:
-        log.exception('Response Header is not Available in CSV Headers received from ORA2.')
+        log.exception('Header is not Available in CSV Headers received from ORA2.')
     except FileUploadInternalError:
         log.exception('An internal exception occurred while generating a download URL.')
 
@@ -396,7 +396,7 @@ def generate_custom_ora2_report(header, datarows):
 
 def replace_file_key_with_downloadable_url(file_keys):
     """
-    Shift file key to downloadable s3 links.
+    Transform file keys to downloadable s3 links.
 
     Arguments:
         file_keys: Unique file key of s3 bucket.
