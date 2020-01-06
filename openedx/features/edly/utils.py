@@ -11,7 +11,9 @@ from edx_ace.recipient import Recipient
 from lms.djangoapps.discussion.tasks import _get_thread_url
 from lms.lib.comment_client.comment import Comment
 from opaque_keys import InvalidKeyError
-from opaque_keys.edx.keys import CourseKey
+from opaque_keys.edx.keys import CourseKey, UsageKey
+from openassessment.fileupload import backends
+from openassessment.fileupload.exceptions import FileUploadInternalError
 from openedx.core.djangoapps.ace_common.template_context import get_base_template_context
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
@@ -20,7 +22,10 @@ from openedx.core.djangoapps.theming.helpers import get_current_site
 from openedx.features.edly.message_types import ContactUsSupportNotification
 from openedx.features.edly.tasks import send_bulk_mail_to_students
 from static_replace import replace_static_urls
-from student.models import CourseEnrollment
+from student.models import CourseEnrollment, user_by_anonymous_id
+from submissions.api import _get_submission_model
+from submissions.models import Submission
+from xmodule.modulestore.django import modulestore
 
 log = logging.getLogger(__name__)
 ENABLE_FORUM_NOTIFICATIONS_FOR_SITE_KEY = 'enable_forum_notifications'
@@ -336,3 +341,68 @@ def send_contact_us_email(data):
                 payload
             )
     return email_status
+
+
+def generate_custom_ora2_report(header, datarows):
+    """
+    Add/Update data of csv file to export as a ORA2 report.
+
+    Arguments:
+        header: Header row of csv file.
+        datarows: List of rows of Data to be written in csv.
+    """
+    try:
+        response_index = header.index('Response')
+        submission_uuid_index = header.index('Submission ID')
+        anonymous_user_id_index = header.index('Anonymized Student ID')
+        assessment_title_index = submission_uuid_index + 1
+        header[anonymous_user_id_index] = "Username"
+        header[assessment_title_index:assessment_title_index] = ["Assessment Title"]
+
+        for row in datarows:
+            # Replacing anonymous user id with username
+            submitter = user_by_anonymous_id(row[anonymous_user_id_index])
+            if submitter:
+                row[anonymous_user_id_index] = submitter.username
+
+            # Replacing the file_keys with downloadable urls
+            response = row[response_index]
+            file_keys = response.get('file_keys')
+            if file_keys:
+                file_keys = replace_file_key_with_downloadable_url(file_keys)
+                response['file_keys'] = file_keys
+
+            # Fetching Assessment title and adding it to csv
+            submission_uuid = row[submission_uuid_index]
+            submission_object = _get_submission_model(submission_uuid)
+            if submission_object:
+                item_id = submission_object.student_item.item_id
+                try:
+                    block_usage_key = UsageKey.from_string(item_id)
+                    assessment_block = modulestore().get_item(block_usage_key)
+                    assessment_title = assessment_block.title
+                    row[assessment_title_index:assessment_title_index] = [assessment_title]
+                except Submission.DoesNotExist:
+                    log.exception('Submission object not Found!!')
+                except InvalidKeyError:
+                    log.exception('Usage Key for the given block is not found')
+    except ValueError:
+        log.exception('Header is not Available in CSV Headers received from ORA2.')
+    except FileUploadInternalError:
+        log.exception('An internal exception occurred while generating a download URL.')
+
+    return header, datarows
+
+
+def replace_file_key_with_downloadable_url(file_keys):
+    """
+    Transform file keys to downloadable s3 links.
+
+    Arguments:
+        file_keys: Unique file key of s3 bucket.
+    """
+    backend = backends.get_backend()
+    downloadable_file_urls = []
+    for file_key in file_keys:
+        downloadable_file_urls.append(backend.get_download_url(file_key))
+    return downloadable_file_urls

@@ -19,6 +19,7 @@ from instructor_analytics.basic import get_proctored_exam_results
 from instructor_analytics.csvs import format_dictlist
 from openedx.core.djangoapps.course_groups.cohorts import add_user_to_cohort
 from openedx.core.djangoapps.course_groups.models import CourseUserGroup
+from openedx.features.edly.utils import generate_custom_ora2_report
 from survey.models import SurveyAnswer
 from util.file import UniversalNewlineIterator
 
@@ -273,6 +274,7 @@ def upload_ora2_data(
 
     try:
         header, datarows = OraAggregateData.collect_ora2_data(course_id)
+        header, datarows = generate_custom_ora2_report(header, datarows)  # Added for LUMS custom requirements.
         rows = [header] + [row for row in datarows]
     # Update progress to failed regardless of error type
     except Exception:  # pylint: disable=broad-except
