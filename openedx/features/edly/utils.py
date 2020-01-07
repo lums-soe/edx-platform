@@ -26,6 +26,7 @@ from student.models import CourseEnrollment, user_by_anonymous_id
 from submissions.api import _get_submission_model
 from submissions.models import Submission
 from xmodule.modulestore.django import modulestore
+from xmodule.modulestore.exceptions import ItemNotFoundError
 
 log = logging.getLogger(__name__)
 ENABLE_FORUM_NOTIFICATIONS_FOR_SITE_KEY = 'enable_forum_notifications'
@@ -382,6 +383,9 @@ def generate_custom_ora2_report(header, datarows):
                     assessment_block = modulestore().get_item(block_usage_key)
                     assessment_title = assessment_block.title
                     row[assessment_title_index:assessment_title_index] = [assessment_title]
+                except ItemNotFoundError:
+                    log.info('Item with key:{usage_key} not Found'.format(usage_key=block_usage_key))
+                    row[assessment_title_index:assessment_title_index] = ["Deleted/Not Available"]
                 except Submission.DoesNotExist:
                     log.exception('Submission object not Found!!')
                 except InvalidKeyError:
